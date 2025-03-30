@@ -15,6 +15,19 @@ spec:
       storage: 20Gi
 ---
 apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: quay-quad-quay-datastorage-pvc
+  labels:
+    app: quay-quad
+spec:
+  accessModes:
+  - ReadWriteOnce
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: v1
 kind: ConfigMap
 metadata:
   name: quay-quad-db-cm
@@ -23,6 +36,105 @@ metadata:
 data:
   pg_bootstrap.sql: |
     CREATE EXTENSION pg_trgm;
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: quay-quad-config-cm
+  labels:
+    app: quay-quad
+data:
+  config.yaml: |
+    SUPER_USERS:
+    - admin
+    AUTHENTICATION_TYPE: Database
+    BITTORRENT_FILENAME_PEPPER: 0ee18f90-5b6d-42d2-ab5e-ec9fcd846272
+    BUILDLOGS_REDIS:
+      # host: quay-redis
+      host: localhost
+      port: 6379
+    # DB_URI: postgresql://quay:quay@quay-db/quay
+    DB_URI: postgresql://quay:quay@localhost/quay
+    DATABASE_SECRET_KEY: '30060361640793187613697366923211113205676925445650250274752125083971638376224'
+    DEFAULT_TAG_EXPIRATION: 2w
+    DISTRIBUTED_STORAGE_CONFIG:
+      default:
+      - LocalStorage
+      - storage_path: /datastorage/registry
+    DISTRIBUTED_STORAGE_DEFAULT_LOCATIONS: []
+    DISTRIBUTED_STORAGE_PREFERENCE:
+    - default
+    ENTERPRISE_LOGO_URL: /static/img/quay-horizontal-color.svg
+    EXTERNAL_TLS_TERMINATION: true
+    FEATURE_ANONYMOUS_ACCESS: true
+    FEATURE_APP_REGISTRY: false
+    FEATURE_APP_SPECIFIC_TOKENS: true
+    FEATURE_BUILD_SUPPORT: false
+    FEATURE_CHANGE_TAG_EXPIRATION: true
+    FEATURE_DIRECT_LOGIN: true
+    FEATURE_GARBAGE_COLLECTION: false
+    FEATURE_MAILING: false
+    FEATURE_PARTIAL_USER_AUTOCOMPLETE: true
+    FEATURE_REPO_MIRROR: false
+    FEATURE_REQUIRE_TEAM_INVITE: true
+    FEATURE_RESTRICTED_V1_PUSH: false
+    FEATURE_SECURITY_NOTIFICATIONS: false
+    FEATURE_SECURITY_SCANNER: true
+    FEATURE_USERNAME_CONFIRMATION: true
+    FEATURE_USER_CREATION: true
+    FEATURE_USER_LOG_ACCESS: false
+    FEATURE_PROXY_CACHE: true
+    GITHUB_LOGIN_CONFIG: {}
+    GITHUB_TRIGGER_CONFIG: {}
+    GITLAB_TRIGGER_KIND: {}
+    LOG_ARCHIVE_LOCATION: default
+    MAIL_DEFAULT_SENDER: admin@example.com
+    MAIL_PORT: 587
+    MAIL_USE_TLS: true
+    PREFERRED_URL_SCHEME: http
+    REGISTRY_TITLE: Red Hat Quay
+    REGISTRY_TITLE_SHORT: Red Hat Quay
+    REPO_MIRROR_SERVER_HOSTNAME: null
+    REPO_MIRROR_TLS_VERIFY: false
+    SECURITY_SCANNER_V4_ENDPOINT: http://localhost:6000
+    SECURITY_SCANNER_V4_NAMESPACE_WHITELIST:
+      - "clairv4-org"
+    SECURITY_SCANNER_ISSUER_NAME: security_scanner
+    SERVER_HOSTNAME: localhost:8080
+    SETUP_COMPLETE: true
+    SIGNING_ENGINE: gpg2
+    TAG_EXPIRATION_OPTIONS:
+    - 0s
+    - 1d
+    - 1w
+    - 2w
+    - 4w
+    TEAM_RESYNC_STALE_TIME: 60m
+    TESTING: false
+    USERFILES_LOCATION: default
+    USERFILES_PATH: userfiles/
+    USER_EVENTS_REDIS:
+      # host: quay-redis
+      host: localhost
+      port: 6379
+    USE_CDN: false
+    FEATURE_QUOTA_MANAGEMENT: false
+    BROWSER_API_CALLS_XHR_ONLY: False
+    # CORS_ORIGIN: "https://stage.foo.redhat.com:1337 http://localhost:9000/"
+    CORS_ORIGIN:
+      # - "https://stage.foo.redhat.com:1337"
+      - "http://localhost:9000"
+    FEATURE_UI_V2: True
+    FEATURE_USER_METADATA: True
+    #RHSSO_LOGIN_CONFIG:
+    #  CLIENT_ID: stage.quay.io
+    #  CLIENT_SECRET: SECRET
+    #  OIDC_SERVER: https://sso.stage.redhat.com/auth/realms/redhat-external/
+    #  SERVICE_NAME: Red Hat
+    #  SERVICE_ICON: /static/img/RedHat.svg
+    #  VERIFIED_EMAIL_CLAIM_NAME: email
+    #  PREFERRED_USERNAME_CLAIM_NAME: preferred_username
+    #  LOGIN_SCOPES: ['openid']
 ---
 apiVersion: v1
 kind: Pod
@@ -38,6 +150,12 @@ spec:
     - name: db-data
       persistentVolumeClaim:
         claimName: quay-quad-db-data-pvc
+    - name: quay-config
+      configMap:
+        name: quay-quad-config-cm
+    - name: quay-datastorage
+      persistentVolumeClaim:
+        claimName: quay-quad-quay-datastorage-pvc
   containers:
   - name: quay-quad-redis
     image: docker.io/library/redis:7.4.2
@@ -58,53 +176,34 @@ spec:
     - name: db-config
       mountPath: /docker-entrypoint-initdb.d/pg_bootstrap.sql
       subPath: pg_bootstrap.sql
+      readOnly: true
     - name: db-data
       mountPath: /var/lib/postgresql/data
-# ---
-# apiVersion: v1
-# kind: Pod
-# metadata:
-#   name: quay-quad
-# spec:
-#   containers:
-#   - name: quay
-#     image: quay.io/projectquay/quay:3.13.4
-#     env:
-#       QUAY_VERSION: local-dev
-#       QUAY_HOTRELOAD: "true"
-#       DEBUGLOG: "true"
-#       IGNORE_VALIDATION: "true"
-#       QUAYRUN: /tmp
-#       WORKER_COUNT_UNSUPPORTED_MINIMUM: "1"
-#       WORKER_COUNT: "1"    # volumeMounts:
-    # - name: wordpress-persistent-storage
-    #   mountPath: /var/www/html
-    # resources:
-    #   requests:
-    #     memory: "64Mi"
-    #     cpu: "250m"
-    #   limits:
-    #     memory: "128Mi"
-    #     cpu: "500m"
-  # - name: envoy
-  #   image: docker.io/envoyproxy/envoy:v1.25.0
-  #   volumeMounts:
-  #   - name: config-volume
-  #     mountPath: /etc/envoy
-  #   - name: certificates
-  #     mountPath: /etc/envoy-certificates
-  #   env:
-  #   - name: ENVOY_UID
-  #     value: "0"
-  #   resources:
-  #     requests:
-  #       memory: "64Mi"
-  #       cpu: "250m"
-  #     limits:
-  #       memory: "128Mi"
-  #       cpu: "500m"
-  # volumes:
-  # - name: quay-pv
-  #   persistentVolumeClaim:
-  #     claimName: pg-pv-claim
+  - name: quay
+    image: quay.io/projectquay/quay:3.13.4
+    env:
+    - name: QUAY_VERSION
+      value: local-dev
+    - name: QUAY_HOTRELOAD
+      value: "true"
+    - name: DEBUGLOG
+      value: "true"
+    - name: IGNORE_VALIDATION
+      value: "true"
+    - name: QUAYRUN
+      value: /tmp
+    - name: WORKER_COUNT_UNSUPPORTED_MINIMUM
+      value: "1"
+    - name: WORKER_COUNT
+      value: "1"
+    ports:
+    - quayHttpPort: 8080
+    - quayHttpsPort: 8443
+    volumeMounts:
+    - name: quay-config
+      mountPath: /quay-registry/conf/stack/config.yaml
+      subPath: config.yaml
+      readOnly: true
+    - name: quay-datastorage
+      mountPath: /datastorage/registry
 
