@@ -20,14 +20,7 @@
     owner: root
     group: root
     mode: "0664"
-- name: Copy quay-quad-postgresql.volume
-  ansible.builtin.copy:
-    src: etc/containers/systemd/quay-quad-postgresql.volume
-    dest: /etc/containers/systemd/quay-quad-postgresql.volume
-    owner: root
-    group: root
-    mode: "0664"
-- name: systemctl daemon-reload
+- name: Run systemctl daemon-reload
   ansible.builtin.systemd:
     daemon_reload: true
 # - name: Enable quay.network
