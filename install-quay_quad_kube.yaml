@@ -1,0 +1,20 @@
+---
+- name: Install Quay
+  hosts: all
+  gather_facts: true
+  become: true
+  vars_files:
+    - vars/vars_vault.yaml
+  tasks:
+    - name: Disable firewalld
+      ansible.builtin.systemd:
+        name: firewalld
+        state: stopped
+        enabled: false
+    - name: Install container-tools
+      ansible.builtin.dnf:
+        name: container-tools
+        state: present
+    - name: Install Quay Quadlet kube version
+      ansible.builtin.include_role:
+        name: install-quay_quad_kube

@@ -1,0 +1,37 @@
+---
+- name: Copy quay-quad.network
+  ansible.builtin.copy:
+    src: etc/containers/systemd/quay-quad.network
+    dest: /etc/containers/systemd/quay-quad.network
+    owner: root
+    group: root
+    mode: "0664"
+- name: Copy quay-quad.kube
+  ansible.builtin.copy:
+    src: etc/containers/systemd/quay-quad.kube
+    dest: /etc/containers/systemd/quay-quad.kube
+    owner: root
+    group: root
+    mode: "0664"
+- name: Copy quay-quad.yaml
+  ansible.builtin.copy:
+    src: etc/containers/systemd/quay-quad.yaml
+    dest: /etc/containers/systemd/quay-quad.yaml
+    owner: root
+    group: root
+    mode: "0664"
+- name: Copy quay-quad-postgresql.volume
+  ansible.builtin.copy:
+    src: etc/containers/systemd/quay-quad-postgresql.volume
+    dest: /etc/containers/systemd/quay-quad-postgresql.volume
+    owner: root
+    group: root
+    mode: "0664"
+- name: systemctl daemon-reload
+  ansible.builtin.systemd:
+    daemon_reload: true
+# - name: Enable quay.network
+#   ansible.builtin.systemd:
+#     name: quay.network
+#     enabled: true
+
