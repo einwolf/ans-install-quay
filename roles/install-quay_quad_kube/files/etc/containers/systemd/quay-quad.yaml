@@ -17,7 +17,9 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: pg_bootstrap1
+  name: quay-quad-db-pg_bootstrap1
+  labels:
+    app: quay-quad
 data:
   pg_bootstrap.sql: |
     CREATE EXTENSION pg_trgm;
@@ -34,25 +36,32 @@ spec:
     image: docker.io/library/redis:7.4.2
     ports:
     - redisPort: 6379
-# ---
-# apiVersion: v1
-# kind: Pod
-# metadata:
-#   name: quay-quad-db
-# spec:
-#   containers:
-#   - name: quay-quad-db
-#     image: docker.io/library/postgres:12.1
-#     env:
-#       POSTGRES_USER: "quay"
-#       POSTGRES_PASSWORD: "quay"
-#       POSTGRES_DB: "quay"
-#     volumeMounts:
-#     - name: quay-quad-db-pg_bootstrap1
-#       mountPath: /docker-entrypoint-initdb.d/pg_bootstrap.sql
-#       subPath: pg_bootstrap1
-#     - name: quay-quad-db-pvc
-#       mountPath: /var/lib/postgresql/data
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: quay-quad-db
+  labels:
+    app: quay-quad
+spec:
+  containers:
+  - name: quay-quad-pgsql
+    image: docker.io/library/postgres:12.1
+    env:
+    - name: POSTGRES_USER
+      value: "quay"
+    - name: POSTGRES_PASSWORD
+      value: "quay"
+    - name: POSTGRES_DB
+      value: "quay"
+    ports:
+    - pgsqlPort: 5432
+    # volumeMounts:
+    # - name: quay-quad-db-pg_bootstrap1
+    #   mountPath: /docker-entrypoint-initdb.d/pg_bootstrap.sql
+    #   subPath: pg_bootstrap1
+    # - name: quay-quad-db-pvc
+    #   mountPath: /var/lib/postgresql/data
 # ---
 # apiVersion: v1
 # kind: Pod

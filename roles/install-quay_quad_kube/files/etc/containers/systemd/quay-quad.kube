@@ -11,6 +11,8 @@ Yaml=quay-quad.yaml
 Network=quay-quad.network
 # Redis
 PublishPort=6379:6379
+# Postgresql
+PublishPort=5432:5432
 # Quay
 PublishPort=8080:8080
 PublishPort=8443:8443
